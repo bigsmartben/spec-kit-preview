@@ -2,9 +2,42 @@
   "schemaVersion": "1.0.0",
   "extension": {
     "id": "preview",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "repository": "https://github.com/bigsmartben/spec-kit-preview"
   },
+  "schemas": [
+    {
+      "path": "schemas/preview/contract.json",
+      "requiredPhrases": [
+        "\"schemaVersion\"",
+        "\"schemas\"",
+        "\"commands\""
+      ]
+    },
+    {
+      "path": "schemas/preview/contract.schema.json",
+      "requiredPhrases": [
+        "Spec Kit Preview Extension Validation Contract",
+        "\"schemas\"",
+        "\"schemaFile\""
+      ]
+    },
+    {
+      "path": "schemas/preview/mid-ir-adapter.schema.json",
+      "requiredPhrases": [
+        "Spec Kit Preview Mid-Fidelity IR Adapter",
+        "Preview-owned adapter schema",
+        "not the upstream structured IR authority",
+        "coverage_label",
+        "source_refs",
+        "inference_reason",
+        "evidence_gaps",
+        "sourceBackedProvenance",
+        "gapProvenance",
+        "extensions"
+      ]
+    }
+  ],
   "commands": [
     {
       "name": "speckit.preview.low-md",
@@ -52,6 +85,18 @@
       "template": "templates/preview/mid.md",
       "requiredPhrases": [
         "Mid-Fidelity Extraction Policy",
+        "Structured IR Adapter Input",
+        "schemas/preview/mid-ir-adapter.schema.json",
+        "structured-ir.yaml",
+        "ir-assertions.yaml",
+        "ir-evidence-packet.md",
+        "evidence gap",
+        "Validate the mapped adapter payload against",
+        "passes adapter schema validation",
+        "cannot be validated",
+        "IR_MISSING",
+        "IR_UNMAPPABLE",
+        "IR_PARTIAL",
         "Source-defined page, field, button",
         "primary alternate flow state",
         "Do not create HTML"
@@ -69,6 +114,18 @@
       "template": "templates/preview/mid.html",
       "requiredPhrases": [
         "Mid-Fidelity Extraction Policy",
+        "Structured IR Adapter Input",
+        "schemas/preview/mid-ir-adapter.schema.json",
+        "structured-ir.yaml",
+        "ir-assertions.yaml",
+        "ir-evidence-packet.md",
+        "evidence gap",
+        "Validate the mapped adapter payload against",
+        "passes adapter schema validation",
+        "cannot be validated",
+        "IR_MISSING",
+        "IR_UNMAPPABLE",
+        "IR_PARTIAL",
         "Source-defined page, field, button",
         "primary alternate flow state",
         "Do not create Markdown",

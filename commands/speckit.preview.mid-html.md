@@ -53,6 +53,9 @@ Do not redefine template sections, table columns, CSS shell, JavaScript hook nam
    - `specs/<feature>/data-model.md`
    - `specs/<feature>/contracts/`
    - `specs/<feature>/quickstart.md`
+   - `specs/<feature>/intake/**/structured-ir.yaml`
+   - `specs/<feature>/intake/**/ir-assertions.yaml`
+   - `specs/<feature>/intake/**/ir-evidence-packet.md`
 4. Read `.specify/memory/constitution.md` if present.
 5. If `spec.md` is missing, stop with an error explaining that `/speckit.specify` must run first.
 6. If `specs/<feature>/preview/wireflow-mid.html` already exists, read it before writing. Preserve user-authored review notes, decisions, and unresolved questions when they remain consistent with current source artifacts; label changed items as `UPDATED` and superseded items as `SUPERSEDED`.
@@ -65,6 +68,18 @@ Every requirement, page, node, field, state, branch, and system response include
 
 Coverage evidence must identify the source with a precise anchor: file path, heading, section id, line number, table row, or short quoted source excerpt. Use `输入未说明` when no source supports the requested item. Use `推理补齐` only when a minimal inference connects two supported facts; include the reasoning bridge and keep it non-authoritative.
 
+## Structured IR Adapter Input
+
+Use `schemas/preview/mid-ir-adapter.schema.json` as the preview-owned adapter contract for mid-fidelity structured input. This schema defines the minimum payload needed to render an evidence-backed mid preview; it is not the upstream `spec-kit-intake` structured IR authority and must not be treated as a copy of the upstream IR schema.
+
+When `specs/<feature>/intake/**/structured-ir.yaml`, `specs/<feature>/intake/**/ir-assertions.yaml`, or `specs/<feature>/intake/**/ir-evidence-packet.md` are present, attempt to map source-backed `source_artifacts`, `pages`, `pages[].roles`, `pages[].viewports`, `regions`, `fields`, `controls`, `states`, `relations`, `assertions`, `evidence_gaps`, and `visual_enhancement_refs` into the adapter contract. Ignore upstream `contract_type`; do not use it as the preview validation target. Validate the mapped adapter payload against `schemas/preview/mid-ir-adapter.schema.json` before treating it as IR-backed preview input. Require only that the mapped payload contains enough adapter-compatible structure and provenance to support this preview.
+
+If the mapped payload passes adapter schema validation, prefer IR-backed pages, regions, fields, controls, states, relations, and assertions over looser extraction from prose artifacts. Each IR-backed item still requires a coverage label and provenance. If an item lacks `source_refs`, use it only when a minimal `推理补齐` explanation is available; otherwise mark it as `输入未说明` or record it as an evidence gap.
+
+If structured IR files are missing, unreadable, blocked, cannot be mapped, cannot be validated, or fail validation against `schemas/preview/mid-ir-adapter.schema.json`, do not fail solely for that reason. Continue from `spec.md`, `plan.md`, `contracts/`, and other available artifacts, then record the IR limitation as an evidence gap with one of these stable codes: `IR_MISSING`, `IR_UNMAPPABLE`, or `IR_PARTIAL`.
+
+Distinguish IR-backed structure from visual screenshot, HTML SSOT, design, or token enhancement refs. Visual enhancement refs may support layout review only; they do not create business rules, interactions, states, relations, assertions, coverage conclusions, or acceptance evidence by themselves.
+
 ## Mid-Fidelity Extraction Policy
 
 Extract only:
@@ -72,6 +87,7 @@ Extract only:
 - Source-defined page, field, button, message, and role labels.
 - Page/state sections and decision nodes.
 - Node purpose, visible elements, user actions, system responses, states, and evidence anchors.
+- IR-backed regions, controls, states, relation checks, and assertions when they satisfy `schemas/preview/mid-ir-adapter.schema.json`.
 - Basic layout relationships such as header/sidebar/content/table/form/modal only when supported by artifacts or marked as `推理补齐`.
 - Empty, loading, validation error, success, failure, disabled, and permission states when relevant and supported by evidence.
 - Coverage evidence mapped from requirements to preview nodes, states, or review questions.
@@ -82,8 +98,9 @@ Use non-branded wireframe styling. Do not invent brand visual design, icons, sha
 
 1. Summarize the feature goal, personas, primary scenarios, and constraints from loaded artifacts.
 2. Select the preview focus from `$ARGUMENTS`; if absent, cover the highest-priority user story and primary alternate flow state.
-3. Extract evidence-backed pages, tasks, fields, controls, states, decisions, and system responses.
-4. Fill the mid-fidelity HTML template slots for metadata, evidence summary, wireflow, node inventory, state inventory, branches, coverage, preserved review records, and unresolved review questions.
-5. Escape user-provided content and source excerpts before inserting them into HTML.
-6. Write `specs/<feature>/preview/wireflow-mid.html`, preserving existing review content as described above.
-7. Report output path, fidelity, input sources, flows covered, inferred assumptions, unsupported items, and unresolved review questions.
+3. Map optional structured IR inputs into `schemas/preview/mid-ir-adapter.schema.json` and validate the mapped adapter payload against that schema; if mapping or validation fails or is partial, keep the failure non-blocking and record `IR_UNMAPPABLE` or `IR_PARTIAL` as the evidence gap.
+4. Extract evidence-backed pages, tasks, fields, controls, states, decisions, relation checks, assertions, and system responses.
+5. Fill the mid-fidelity HTML template slots for metadata, evidence summary, wireflow, node inventory, state inventory, branches, coverage, preserved review records, and unresolved review questions.
+6. Escape user-provided content and source excerpts before inserting them into HTML.
+7. Write `specs/<feature>/preview/wireflow-mid.html`, preserving existing review content as described above.
+8. Report output path, fidelity, input sources, structured IR mapping status, flows covered, inferred assumptions, unsupported items, evidence gap entries, and unresolved review questions.
