@@ -6,7 +6,7 @@ Generate evidence-backed low, mid, or high fidelity previews from Spec Kit featu
 
 This extension adds review artifacts between specification and implementation. It helps teams validate product flows, page/state structure, coverage evidence, layout assumptions, UI states, and interaction details before production code is planned or built.
 
-Commands act as execution orchestrators: they resolve the active feature, load Spec Kit artifacts, apply evidence policy, and fill fixed templates under `templates/preview/`. The templates are the source of truth for output sections, table schemas, HTML shells, and preserved-review slots. Structural validation is driven by `schemas/preview/contract.json`, validated against `schemas/preview/contract.schema.json`.
+Commands act as execution orchestrators: they resolve the active feature, load Spec Kit artifacts, apply evidence policy, and fill fixed templates under `templates/preview/`. The mid-fidelity commands can also adapt structured intake IR into the preview-owned `schemas/preview/mid-ir-adapter.schema.json` contract when enough source-backed structure is available. The templates are the source of truth for output sections, table schemas, HTML shells, and preserved-review slots. Structural validation is driven by `schemas/preview/contract.json`, validated against `schemas/preview/contract.schema.json`.
 
 Generated HTML previews are intentionally standalone:
 
@@ -60,6 +60,14 @@ The command reads the active feature under `specs/<feature>/`:
 - `contracts/` (optional)
 - `quickstart.md` (optional)
 
+For mid-fidelity previews, the command also looks for optional structured intake artifacts:
+
+- `intake/**/structured-ir.yaml`
+- `intake/**/ir-assertions.yaml`
+- `intake/**/ir-evidence-packet.md`
+
+These files are not required. When they can be mapped to `schemas/preview/mid-ir-adapter.schema.json`, the preview uses the mapped pages, regions, fields, controls, states, relations, assertions, and provenance as IR-backed evidence. When they are missing or cannot be mapped, preview generation falls back to the existing feature artifacts and records the limitation as an evidence gap.
+
 It also reads `.specify/memory/constitution.md` when present.
 
 ## Output
@@ -78,7 +86,7 @@ HTML files can be opened directly in a browser.
 ## Fidelity
 
 - Low fidelity: early feasibility review, abstract nodes, core path, branch points, and major missing scope.
-- Mid fidelity: product, UX, and engineering review with source-defined labels, page/state inventory, basic layout relationships, and state coverage.
+- Mid fidelity: product, UX, and engineering review with source-defined labels, optional structured IR adaptation, page/state inventory, basic layout relationships, relation checks, assertions, and state coverage.
 - High fidelity: final confirmation with interaction matrix, state matrix, validation feedback, permissions, responsive states, and clickable HTML simulation in the `.html` command.
 
 ## Boundaries
@@ -87,10 +95,10 @@ This extension does not modify app source code, tests, build files, specs, plans
 
 ## Installation
 
-Install from the v1.1.0 release ZIP:
+Install from the v1.2.0 release ZIP:
 
 ```bash
-specify extension add preview --from https://github.com/bigsmartben/spec-kit-preview/archive/refs/tags/v1.1.0.zip
+specify extension add preview --from https://github.com/bigsmartben/spec-kit-preview/archive/refs/tags/v1.2.0.zip
 ```
 
 For local development from this repository root:
@@ -136,6 +144,9 @@ Repository validation uses a schema-backed JSON contract:
 ```text
 schemas/preview/contract.schema.json
 schemas/preview/contract.json
+schemas/preview/mid-ir-adapter.schema.json
 ```
 
-`tests/validate-extension.py` validates the contract shape with a standard-library JSON Schema subset, then uses the contract to verify manifest command mappings, command/template files, required slots, forbidden legacy phrases, and documentation alignment.
+`tests/validate-extension.py` validates the contract shape with a standard-library JSON Schema subset, then uses the contract to verify manifest command mappings, declared schema files, command/template files, required slots, forbidden legacy phrases, and documentation alignment.
+
+`schemas/preview/mid-ir-adapter.schema.json` is a preview-owned ingest boundary for mid-fidelity rendering. It validates whether a mapped payload has enough source-backed pages, regions, fields, controls, states, relations, assertions, coverage labels, and provenance for an evidence-backed preview. It is not the authoritative schema for upstream `spec-kit-intake` IR.

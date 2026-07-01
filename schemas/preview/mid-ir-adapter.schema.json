@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bigsmartben/spec-kit-preview/schemas/preview/mid-ir-adapter.schema.json",
+  "title": "Spec Kit Preview Mid-Fidelity IR Adapter",
+  "description": "Preview-owned adapter schema for evidence-backed mid-fidelity preview ingest. This is not the upstream structured IR authority and does not copy the spec-kit-intake contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adapter_version", "source_artifacts", "pages", "evidence_gaps"],
+  "properties": {
+    "adapter_version": {
+      "type": "string",
+      "description": "Version of the preview adapter payload shape, not the upstream IR version.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "source_artifacts": {
+      "type": "array",
+      "description": "Upstream or supporting artifacts used to form this preview adapter payload.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "pages": {
+      "type": "array",
+      "description": "Renderable page or view structures sufficient for mid-fidelity preview. Each page must include at least one preview-owned region.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "relations": {
+      "type": "array",
+      "description": "Evidence-backed structural or behavioral relations between pages, regions, fields, controls, states, or assertions.",
+      "items": { "$ref": "#/$defs/relation" }
+    },
+    "assertions": {
+      "type": "array",
+      "description": "Evidence-backed assertions that can support coverage rows or review questions.",
+      "items": { "$ref": "#/$defs/assertion" }
+    },
+    "evidence_gaps": {
+      "type": "array",
+      "description": "Known mapping gaps, blocked evidence, unsupported requested preview elements, or adapter limitations.",
+      "items": { "$ref": "#/$defs/evidenceGap" }
+    },
+    "visual_enhancement_refs": {
+      "type": "array",
+      "description": "Screenshot, HTML SSOT, design, or token references that can enhance visual review but do not replace source-backed behavior evidence.",
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "coveredLabel": {
+      "enum": ["已覆盖", "部分覆盖"]
+    },
+    "gapLabel": {
+      "enum": ["未覆盖", "输入未说明", "部分覆盖"]
+    },
+    "coverageLabel": {
+      "enum": ["已覆盖", "部分覆盖", "未覆盖", "输入未说明", "推理补齐"]
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Explicit escape hatch for adapter extensions; upstream IR fields must be mapped here intentionally instead of leaking through the root contract.",
+      "additionalProperties": true
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": [
+            "structured_ir",
+            "ir_assertions",
+            "ir_evidence_packet",
+            "spec",
+            "plan",
+            "contract",
+            "behavior",
+            "research",
+            "data_model",
+            "quickstart",
+            "constitution",
+            "visual_enhancement",
+            "other"
+          ]
+        },
+        "role": {
+          "enum": ["primary", "supporting", "enhancement_only"]
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path", "anchor"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "anchor": { "type": "string", "minLength": 1 },
+        "excerpt": { "type": "string" }
+      }
+    },
+    "sourceBackedProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_label", "source_refs"],
+      "properties": {
+        "coverage_label": { "$ref": "#/$defs/coveredLabel" },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/sourceRef" }
+        },
+        "evidence_note": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "inferredProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_label", "inference_reason"],
+      "properties": {
+        "coverage_label": { "const": "推理补齐" },
+        "inference_reason": { "type": "string", "minLength": 1 },
+        "evidence_note": { "type": "string" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "itemProvenance": {
+      "type": "object",
+      "description": "Renderable preview items must be source-backed when marked 已覆盖/部分覆盖, or explicitly marked 推理补齐 with an inference reason.",
+      "anyOf": [
+        { "$ref": "#/$defs/sourceBackedProvenance" },
+        { "$ref": "#/$defs/inferredProvenance" }
+      ]
+    },
+    "gapProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage_label", "evidence_note"],
+      "properties": {
+        "coverage_label": { "$ref": "#/$defs/gapLabel" },
+        "source_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sourceRef" }
+        },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "purpose", "regions", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "purpose": { "type": "string", "minLength": 1 },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "viewports": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/region" }
+        },
+        "states": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/state" }
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "layout_role", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "layout_role": {
+          "enum": ["header", "sidebar", "content", "table", "form", "modal", "footer", "other"]
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "controls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/control" }
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "input_type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "state_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "control_type": { "type": "string" },
+        "action": { "type": "string" },
+        "state_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "trigger", "feedback", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "trigger": { "type": "string", "minLength": 1 },
+        "feedback": { "type": "string", "minLength": 1 },
+        "recovery_or_next_step": { "type": "string" },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "from", "to", "relation_type", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "relation_type": { "type": "string", "minLength": 1 },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "provenance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "statement": { "type": "string", "minLength": 1 },
+        "target_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "provenance": { "$ref": "#/$defs/itemProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "evidenceGap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "description", "provenance"],
+      "properties": {
+        "code": {
+          "enum": [
+            "IR_MISSING",
+            "IR_UNMAPPABLE",
+            "IR_PARTIAL",
+            "SOURCE_REF_MISSING",
+            "UNSUPPORTED_PREVIEW_REQUEST",
+            "VISUAL_REF_ONLY"
+          ]
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "target_ref": { "type": "string" },
+        "provenance": { "$ref": "#/$defs/gapProvenance" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    }
+  }
+}

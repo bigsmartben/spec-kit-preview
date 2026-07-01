@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: preview
   name: "Spec Kit Preview"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "Generate evidence-backed low, mid, or high fidelity previews from Spec Kit artifacts as Markdown or self-contained HTML"
   author: bigsmartben
   repository: https://github.com/bigsmartben/spec-kit-preview
@@ -23,10 +23,10 @@ provides:
       description: "Generate a low-fidelity evidence-backed static HTML wireflow preview"
     - name: speckit.preview.mid-md
       file: commands/speckit.preview.mid-md.md
-      description: "Generate a mid-fidelity evidence-backed Markdown wireflow preview"
+      description: "Generate a mid-fidelity evidence-backed Markdown wireflow preview with optional structured IR adaptation"
     - name: speckit.preview.mid-html
       file: commands/speckit.preview.mid-html.md
-      description: "Generate a mid-fidelity evidence-backed static HTML wireflow preview"
+      description: "Generate a mid-fidelity evidence-backed static HTML wireflow preview with optional structured IR adaptation"
     - name: speckit.preview.high-md
       file: commands/speckit.preview.high-md.md
       description: "Generate a high-fidelity evidence-backed Markdown interaction preview"

@@ -111,6 +111,89 @@ def validate_contract(contract: dict[str, Any], schema: dict[str, Any]) -> None:
     validate_json_schema_subset(contract, schema, schema)
 
 
+def validate_mid_ir_adapter_schema(schema: dict[str, Any]) -> None:
+    if schema.get("additionalProperties") is not False:
+        fail("mid IR adapter schema must not allow undeclared root properties")
+
+    required = set(schema.get("required", []))
+    expected_required = {"adapter_version", "source_artifacts", "pages", "evidence_gaps"}
+    missing = sorted(expected_required - required)
+    if missing:
+        fail(f"mid IR adapter schema missing required top-level keys: {missing}")
+
+    properties = schema.get("properties", {})
+    if "contract_type" in properties:
+        fail("mid IR adapter schema must not own upstream contract_type")
+
+    defs = schema.get("$defs", {})
+    for name in [
+        "sourceBackedProvenance",
+        "inferredProvenance",
+        "itemProvenance",
+        "gapProvenance",
+        "extensions",
+    ]:
+        if name not in defs:
+            fail(f"mid IR adapter schema missing ${name}")
+
+    source_backed = defs["sourceBackedProvenance"]
+    if source_backed.get("additionalProperties") is not False:
+        fail("sourceBackedProvenance must not allow undeclared properties")
+    if set(source_backed.get("required", [])) != {"coverage_label", "source_refs"}:
+        fail("sourceBackedProvenance must require coverage_label and source_refs")
+    source_refs = source_backed.get("properties", {}).get("source_refs", {})
+    if source_refs.get("minItems") != 1:
+        fail("sourceBackedProvenance.source_refs must require at least one item")
+
+    inferred = defs["inferredProvenance"]
+    if set(inferred.get("required", [])) != {"coverage_label", "inference_reason"}:
+        fail("inferredProvenance must require coverage_label and inference_reason")
+    inferred_label = inferred.get("properties", {}).get("coverage_label", {})
+    if inferred_label.get("const") != "推理补齐":
+        fail("inferredProvenance.coverage_label must be 推理补齐")
+
+    gap = defs["gapProvenance"]
+    if set(gap.get("required", [])) != {"coverage_label", "evidence_note"}:
+        fail("gapProvenance must require coverage_label and evidence_note")
+
+    gap_codes = (
+        defs.get("evidenceGap", {})
+        .get("properties", {})
+        .get("code", {})
+        .get("enum", [])
+    )
+    for code in ["IR_MISSING", "IR_UNMAPPABLE", "IR_PARTIAL"]:
+        if code not in gap_codes:
+            fail(f"mid IR adapter evidenceGap missing code: {code}")
+
+    page = defs.get("page", {})
+    if page.get("additionalProperties") is not False:
+        fail("page adapter object must not allow undeclared properties")
+    page_required = set(page.get("required", []))
+    for key in ["id", "label", "purpose", "regions", "provenance"]:
+        if key not in page_required:
+            fail(f"page adapter object must require {key}")
+    page_regions = page.get("properties", {}).get("regions", {})
+    if page_regions.get("minItems") != 1:
+        fail("page.regions must require at least one region")
+    page_purpose = page.get("properties", {}).get("purpose", {})
+    if page_purpose.get("minLength") != 1:
+        fail("page.purpose must require a non-empty string")
+
+    renderable_defs = ["page", "region", "field", "control", "state", "relation", "assertion"]
+    for name in renderable_defs:
+        node = defs.get(name, {})
+        if node.get("additionalProperties") is not False:
+            fail(f"{name} adapter object must not allow undeclared properties")
+        provenance = node.get("properties", {}).get("provenance", {})
+        if provenance.get("$ref") != "#/$defs/itemProvenance":
+            fail(f"{name}.provenance must use itemProvenance")
+
+    region_required = set(defs.get("region", {}).get("required", []))
+    if "layout_role" not in region_required:
+        fail("region adapter object must require layout_role")
+
+
 def render_catalog_phrase(template: str, manifest: dict[str, Any]) -> str:
     extension = manifest["extension"]
     commands = manifest["provides"]["commands"]
@@ -156,12 +239,16 @@ def main() -> None:
         item["name"]: ROOT / item["file"]
         for item in command_contracts
     }
+    schema_paths = {
+        item["path"]: ROOT / item["path"]
+        for item in contract["schemas"]
+    }
     template_paths = {
         item["path"]: ROOT / item["path"]
         for item in contract["templates"]
     }
 
-    for path in [*command_paths.values(), *template_paths.values()]:
+    for path in [*command_paths.values(), *schema_paths.values(), *template_paths.values()]:
         if not path.is_file():
             fail(f"{path.relative_to(ROOT)} is missing")
 
@@ -185,10 +272,7 @@ def main() -> None:
         str(path.relative_to(ROOT)).replace("\\", "/")
         for path in (ROOT / "schemas" / "preview").glob("*.json")
     )
-    expected_schema_files = [
-        "schemas/preview/contract.json",
-        "schemas/preview/contract.schema.json",
-    ]
+    expected_schema_files = sorted(item["path"] for item in contract["schemas"])
     if actual_schema_files != expected_schema_files:
         fail(f"unexpected schema files: {actual_schema_files}")
 
@@ -230,6 +314,13 @@ def main() -> None:
 
     for item in contract["templates"]:
         content = template_paths[item["path"]].read_text(encoding="utf-8")
+        require_phrases(item["path"], content, item["requiredPhrases"])
+
+    for item in contract["schemas"]:
+        schema = load_json(schema_paths[item["path"]])
+        if item["path"] == "schemas/preview/mid-ir-adapter.schema.json":
+            validate_mid_ir_adapter_schema(schema)
+        content = schema_paths[item["path"]].read_text(encoding="utf-8")
         require_phrases(item["path"], content, item["requiredPhrases"])
 
     docs = {
